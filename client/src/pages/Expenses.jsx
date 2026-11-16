@@ -27,13 +27,14 @@ import {
 } from '../services/expenseService';
 import { downloadCsv } from '../utils/csv';
 import { formatINR, formatDate } from '../utils/format';
+import useChartTheme from '../hooks/useChartTheme';
 
-// Category colors are status tokens only: office→info, salaries→ok, professional→low, other→ink-soft.
+// Badge tones are semantic; chart colors come from the theme hook (navy/rosewood tints).
 const CATEGORIES = [
-  { value: 'office', label: 'Office & Rent', tone: 'info', dot: 'bg-info', fill: 'var(--info)' },
-  { value: 'salaries', label: 'Salaries & Wages', tone: 'ok', dot: 'bg-ok', fill: 'var(--ok)' },
-  { value: 'professional', label: 'Professional Services', tone: 'low', dot: 'bg-low', fill: 'var(--low)' },
-  { value: 'other', label: 'Other Expenses', tone: 'neutral', dot: 'bg-ink-soft', fill: 'var(--ink-soft)' },
+  { value: 'office', label: 'Office & Rent', tone: 'info' },
+  { value: 'salaries', label: 'Salaries & Wages', tone: 'ok' },
+  { value: 'professional', label: 'Professional Services', tone: 'low' },
+  { value: 'other', label: 'Other Expenses', tone: 'neutral' },
 ];
 const categoryOf = (value) => CATEGORIES.find((c) => c.value === value);
 const categoryLabel = (value) => categoryOf(value)?.label ?? value;
@@ -54,6 +55,8 @@ const emptyForm = () => ({ title: '', category: 'office', amount: '', note: '', 
 
 export default function Expenses() {
   const [params, setParams] = useSearchParams();
+  const chart = useChartTheme();
+  const colorOf = (value) => chart.series[CATEGORIES.findIndex((c) => c.value === value)] ?? chart.navy;
 
   const search = params.get('search') ?? '';
   const category = params.get('category') ?? '';
@@ -300,10 +303,10 @@ export default function Expenses() {
                       strokeWidth={2}
                       isAnimationActive={false}
                     >
-                      {slices.map((c) => <Cell key={c.value} fill={c.fill} />)}
+                      {slices.map((c) => <Cell key={c.value} fill={colorOf(c.value)} />)}
                     </Pie>
                     <Tooltip
-                      contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, fontSize: 12 }}
+                      contentStyle={chart.tooltip}
                       formatter={(v) => formatINR(v)}
                     />
                   </PieChart>
@@ -317,7 +320,7 @@ export default function Expenses() {
                 {slices.map((c) => (
                   <li key={c.value} className="flex items-center justify-between gap-3 text-[13px]">
                     <span className="flex items-center gap-2 text-ink">
-                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${c.dot}`} aria-hidden="true" />
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: colorOf(c.value) }} aria-hidden="true" />
                       {c.label}
                     </span>
                     <span className="num text-ink">{formatINR(c.amount)} <span className="text-ink-soft">({share(c.amount)}%)</span></span>
@@ -337,7 +340,7 @@ export default function Expenses() {
                   <span className="num text-ink">{formatINR(c.amount)} <span className="text-ink-soft">({share(c.amount)}%)</span></span>
                 </div>
                 <div className="mt-1 h-1.5 rounded-full bg-paper">
-                  <div className={`h-full rounded-full ${c.dot}`} style={{ width: `${(c.amount / maxCategory) * 100}%` }} />
+                  <div className="h-full rounded-full" style={{ width: `${(c.amount / maxCategory) * 100}%`, backgroundColor: colorOf(c.value) }} />
                 </div>
               </div>
             ))}

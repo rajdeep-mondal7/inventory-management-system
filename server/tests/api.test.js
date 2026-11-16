@@ -387,3 +387,59 @@ test('alerts: restocking above the reorder level auto-resolves the shortage aler
   const all = (await call('GET', '/alerts?limit=100', as('admin'))).body;
   assert.equal(all.find((a) => a.product?.id === p.id).isRead, true, 'restock auto-resolved the alert');
 });
+
+// Kept last: these add sales, and the reports/alerts tests above assert exact totals.
+test('sales: customer details saved and returned in list and detail; validation; legacy and walk-in', async () => {
+  const customer = { name: 'Fake Buyer', phone: '+91 90000 12345', email: 'buyer@example.com', address: '1 Test Lane, Faketown' };
+  const item = [{ product: ids.cable, quantity: 1 }];
+
+  const s = await call('POST', '/sales', as('staff'), { items: item, customer });
+  assert.equal(s.status, 201, JSON.stringify(s.body));
+  assert.deepEqual(s.body.customer, customer);
+  assert.equal(s.body.customerName, 'Fake Buyer', 'customerName stays derived for older consumers');
+
+  const listed = (await call('GET', '/sales', as('staff'))).body.find((x) => x.id === s.body.id);
+  assert.deepEqual(listed.customer, customer, 'list includes customer details');
+  const detail = await call('GET', `/sales/${s.body.id}`, as('staff'));
+  assert.deepEqual(detail.body.customer, customer, 'detail includes customer details');
+  assert.equal((await call('GET', '/sales?search=fake buyer', as('staff'))).body.length, 1, 'search still matches the name');
+
+  // invalid email / phone -> 400 with a clear message
+  const badEmail = await call('POST', '/sales', as('staff'), { items: item, customer: { email: 'not-an-email' } });
+  assert.equal(badEmail.status, 400);
+  assert.match(badEmail.body.message, /email/i);
+  const shortPhone = await call('POST', '/sales', as('staff'), { items: item, customer: { phone: '12345' } });
+  assert.equal(shortPhone.status, 400);
+  assert.match(shortPhone.body.message, /7 to 15 digits/);
+  const badPhone = await call('POST', '/sales', as('staff'), { items: item, customer: { phone: 'abc1234567' } });
+  assert.equal(badPhone.status, 400);
+  const longName = await call('POST', '/sales', as('staff'), { items: item, customer: { name: 'x'.repeat(101) } });
+  assert.equal(longName.status, 400);
+  const longAddress = await call('POST', '/sales', as('staff'), { items: item, customer: { address: 'x'.repeat(301) } });
+  assert.equal(longAddress.status, 400);
+
+  // values are trimmed
+  const padded = await call('POST', '/sales', as('staff'), { items: item, customer: { name: '  Trimmed Buyer  ', phone: ' +91 90000 54321 ' } });
+  assert.equal(padded.status, 201);
+  assert.equal(padded.body.customer.name, 'Trimmed Buyer');
+  assert.equal(padded.body.customer.phone, '+91 90000 54321');
+
+  // old request shape: only customerName
+  const legacy = await call('POST', '/sales', as('staff'), { items: item, customerName: 'Old Style' });
+  assert.equal(legacy.status, 201);
+  assert.equal(legacy.body.customerName, 'Old Style');
+  assert.equal(legacy.body.customer.name, 'Old Style');
+  assert.equal(legacy.body.customer.phone, '');
+
+  // customer object without a name falls back to customerName
+  const fallback = await call('POST', '/sales', as('staff'), { items: item, customerName: 'Fallback Name', customer: { phone: '+91 90000 99999' } });
+  assert.equal(fallback.status, 201);
+  assert.equal(fallback.body.customer.name, 'Fallback Name');
+  assert.equal(fallback.body.customer.phone, '+91 90000 99999');
+
+  // walk-in sale stays fast: no customer fields at all
+  const walkin = await call('POST', '/sales', as('staff'), { items: item });
+  assert.equal(walkin.status, 201);
+  assert.equal(walkin.body.customerName, 'Walk-in');
+  assert.deepEqual(walkin.body.customer, { name: '', phone: '', email: '', address: '' });
+});

@@ -44,15 +44,24 @@ export default function Sidebar({ open, onClose }) {
   const width = collapsed ? 'md:w-60 xl:w-16' : 'md:w-60';
 
   const linkClass = ({ isActive }) =>
-    `group flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-colors duration-[120ms] ${
-      isActive ? 'bg-paper text-ink shadow-[inset_2px_0_0_0_var(--ink)]' : 'text-ink-soft hover:bg-paper hover:text-ink'
+    `group flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-[120ms] ${
+      isActive ? 'bg-accent text-on-accent' : 'text-ink-soft hover:bg-paper hover:text-ink'
     } ${center}`;
 
   return (
     <>
       {open && <div className="fixed inset-0 z-20 bg-black/40 md:hidden" onClick={onClose} />}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 flex w-60 shrink-0 flex-col border-r border-line bg-surface transition-[width,transform] duration-200 md:static md:translate-x-0 ${width} ${
+        // Local token overrides: every kit utility inside the rail resolves to the navy palette.
+        style={{
+          '--paper': 'var(--sidebar-hover)',
+          '--surface': 'var(--sidebar)',
+          '--ink': 'var(--sidebar-text)',
+          '--ink-soft': 'var(--sidebar-soft)',
+          '--line': 'var(--sidebar-line)',
+          '--on-ink': 'var(--sidebar)',
+        }}
+        className={`fixed inset-y-0 left-0 z-30 flex w-60 shrink-0 flex-col border-r border-sidebar-line bg-sidebar transition-[width,transform] duration-200 md:static md:translate-x-0 ${width} ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

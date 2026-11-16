@@ -25,7 +25,7 @@ import { formatINR, formatDate, plural } from '../utils/format';
 import { downloadCsv } from '../utils/csv';
 
 const emptyForm = { name: '', contactPerson: '', email: '', phone: '', address: '', isActive: true };
-const orderTone = { draft: 'neutral', ordered: 'info', received: 'ok', cancelled: 'out' };
+const orderTone = { draft: 'low', ordered: 'low', received: 'ok', cancelled: 'out' };
 const isActive = (s) => s.isActive !== false;
 const orDash = (value) => (value == null || value === '' ? '—' : value);
 const initials = (name) => (name ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();

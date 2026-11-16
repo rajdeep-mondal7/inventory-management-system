@@ -11,6 +11,16 @@ const saleItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const customerSchema = new mongoose.Schema(
+  {
+    name: { type: String, trim: true, maxlength: 100 },
+    phone: { type: String, trim: true },
+    email: { type: String, trim: true },
+    address: { type: String, trim: true, maxlength: 300 },
+  },
+  { _id: false }
+);
+
 const saleSchema = new mongoose.Schema(
   {
     invoiceNumber: { type: String, required: true, unique: true }, // e.g. INV-2026-0001
@@ -18,6 +28,7 @@ const saleSchema = new mongoose.Schema(
     discount: { type: Number, default: 0, min: 0 },
     totalAmount: { type: Number, default: 0 },
     customerName: { type: String, trim: true },
+    customer: { type: customerSchema, required: false },
     paymentMethod: { type: String, enum: ['cash', 'card', 'upi'], default: 'cash' },
     soldBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },

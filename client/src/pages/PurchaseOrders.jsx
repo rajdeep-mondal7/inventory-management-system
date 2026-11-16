@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, ClipboardList, Plus, Send, Trash2, X } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Eye, Plus, Send, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PageHeader from '../components/ui/PageHeader';
 import DataTable from '../components/ui/DataTable';
@@ -25,7 +25,7 @@ import { formatINR, formatDate } from '../utils/format';
 
 // OWNER: Shilpa (Purchase Orders: list, create order, mark received)
 
-const statusTone = { draft: 'neutral', ordered: 'info', received: 'ok', cancelled: 'out' };
+const statusTone = { draft: 'low', ordered: 'low', received: 'ok', cancelled: 'out' };
 const emptyItem = () => ({ product: '', quantity: 1, unitCost: '' });
 const emptyForm = () => ({ supplier: '', expectedDate: '', notes: '', items: [emptyItem()] });
 const today = () => new Date().toISOString().slice(0, 10);
@@ -159,8 +159,11 @@ export default function PurchaseOrders() {
     if (type === 'cancel') runAction(order, () => cancelOrder(order.id), `Order cancelled — ${order.orderNumber}`);
   };
 
+  const openDetails = (o) => { setViewing(o); setParam('order', o.id); };
+
   const rowActions = (o) => (
     <div className="flex justify-end gap-0.5">
+      <IconButton label={`View purchase order ${o.orderNumber}`} title="View details" onClick={(e) => { e.stopPropagation(); openDetails(o); }}><Eye size={16} /></IconButton>
       {o.status === 'draft' && <IconButton label={`Place ${o.orderNumber}`} onClick={() => place(o)}><Send size={16} /></IconButton>}
       {o.status === 'ordered' && <IconButton label={`Receive ${o.orderNumber}`} className="text-ok" onClick={() => setConfirm({ type: 'receive', order: o })}><CheckCircle2 size={16} /></IconButton>}
       {(o.status === 'draft' || o.status === 'ordered') && <IconButton label={`Cancel ${o.orderNumber}`} className="text-out" onClick={() => setConfirm({ type: 'cancel', order: o })}><X size={16} /></IconButton>}
@@ -189,7 +192,7 @@ export default function PurchaseOrders() {
         columns={columns}
         rows={rows}
         loading={loading}
-        onRowClick={(r) => { setViewing(r); setParam('order', r.id); }}
+        onRowClick={openDetails}
         empty={loadError ? <EmptyState title={loadError} action={<Button size="sm" variant="secondary" onClick={refresh}>Retry</Button>} /> : <EmptyState icon={ClipboardList} title={statusFilter === 'all' ? 'No purchase orders yet.' : `No ${statusFilter} orders.`} action={statusFilter === 'all' ? <Button size="sm" onClick={() => setCreateOpen(true)}>Create order</Button> : undefined} />}
       />
 

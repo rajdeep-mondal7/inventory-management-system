@@ -74,3 +74,37 @@ Spec: `docs/superpowers/specs/2026-11-13-stockflow-ui-overhaul-design.md`.
 ## Polish round
 **Files:** ui/StatCard.jsx (goodWhenDown), Dashboard.jsx (expense delta), ui/Card.jsx (min-w-0), ui/IconButton.jsx + index.css (coarse-pointer 40px targets), QA-RESULTS.md.
 **Checks:** eslint exit 0; vite build success; browser: expense delta now red for a rise (#A33A2A); all 10 routes fit a 544px viewport (no page overflow; tables scroll internally); reduced-motion media query confirmed present.
+
+## A1 — Invoice customer details (2026-11-16, feature/invoice-customer-details)
+**Files:** `server/src/models/Sale.js` (optional `customer` subdoc: name/phone/email/address),
+`server/src/routes/saleRoutes.js` (express-validator: name ≤100, phone charset + 7–15 digits, email, address ≤300, all optional, trimmed),
+`server/src/controllers/saleController.js` (accepts `customer`, falls back to `customerName`, keeps both consistent),
+`server/src/utils/serializers.js` (`customer` object + derived `customerName` kept for lists/search),
+`server/src/scripts/seed.js` (~60% of sales get clearly fake details, walk-ins left unnamed),
+`server/tests/api.test.js` (new last test: save/list/detail, 400s, trim, legacy, fallback, walk-in),
+`client/src/pages/Sales.jsx` (collapsible "Customer details (optional)" with inline validation mirroring server rules, "Billed to" drawer block with "Walk-in customer" fallback and hidden empty lines, CSV Customer/Phone/Email/Address columns through `csvCell`),
+`client/src/services/saleService.js` (payload comment).
+**Checks:** server `npm test` 17/17 pass (local single-node replica set, throwaway `stockflow_test` DB); `npx eslint .` exit 0; `npx vite build` success.
+Browser (seeded local demo): seeded invoice shows full Billed to block; POS sale with invalid phone/email blocked inline, valid sale INV-2026-0276 saved and shown; walk-in shows "Walk-in customer" only; CSV blob inspected — new columns present, `+` phones formula-neutralised. Seed ratio verified 167/275 (61%).
+**Fix during QA:** seed originally stored literal "Walk-in" name, defeating the drawer fallback; walk-ins now stay unnamed.
+**NOT-RUN:** no print/PDF invoice view exists, so nothing to extend there. `stockService.js` untouched.
+
+## A2 — Purchase Orders eye (view) button (2026-11-16, feature/po-view-button)
+**Files:** `client/src/pages/PurchaseOrders.jsx` only — Eye ghost IconButton first in row actions for every status,
+reuses the existing detail drawer via a shared `openDetails` handler (also used by row click), `stopPropagation`,
+`aria-label="View purchase order PO-…"`, `title="View details"`, `?order=<id>` deep link kept.
+**Checks:** server `npm test` 16/16 pass; `npx eslint .` exit 0; `npx vite build` success.
+Browser: eye present on draft/ordered/received/cancelled rows, 36×36 target, first action, visible focus ring;
+click and Space open the single existing drawer with correct `?order=` URL (no double open); Receive confirm still
+opens above the list; cancelled order shows its drawer; narrow viewport (~513px) layout intact, table scrolls internally.
+**Note:** automation `press_key Enter` delivers keydown/keyup without synthesizing the native click (tool artifact);
+default is not prevented and Space activates, so real-browser Enter works via native button semantics.
+
+## Part B — Quiet Luxury dual theme (branch feature/quiet-luxury-ui)
+**Files:** `client/src/index.css` (full Light "Quiet Luxury Alabaster" / Dark "Nocturne Luxury" token swap + `.bar-gradient`); `client/index.html` (pre-paint theme script + theme-color); `context/PreferencesContext.jsx` (meta theme-color sync); `components/Topbar.jsx` (toggle toast "Switched to Dark/Light mode"); `components/Sidebar.jsx` (navy rail via local CSS-var overrides, rosewood active pill); `ui/Button.jsx` (primary = accent); `ui/Input.jsx` + `ui/FormField.jsx` (≥3:1 `--field-border`); `ui/Tabs.jsx` (accent underline); `ui/StatCard.jsx` (rose sparkline); `ui/Modal.jsx`, `ui/Drawer.jsx`, `CommandPalette.jsx` (token scrim); NEW `hooks/useChartTheme.js` (navy/rose + grid/tick/cursor/tooltip + mixed donut tints); `pages/Dashboard.jsx` (SVG linearGradient area fill, gradient stock-health bar, legend kept); `pages/Sales.jsx` (gradient bars, themed axes/tooltip/cursor, gradient top-products bars); `pages/Expenses.jsx` (donut + legend + category bars from hook tints, semantic Badge tones kept); `pages/PurchaseOrders.jsx` + `pages/Suppliers.jsx` + `pages/UIKit.jsx` (draft/ordered → amber tone).
+**Checks:** server `npm test` 16/16 pass (replica-set test DB); `npx eslint .` exit 0; `npx vite build` success. Browser both themes: dashboard (KPIs, gradient area, stock bar, movements, attention), Sales bars + top products, Expenses donut/legend/bars, Inventory, Products drawer, Orders badges (draft/ordered amber, cancelled crimson, received sage), Suppliers drawer, Users, Settings, ⌘K palette, alert bell, Login, Landing, 404; toggle toasts verified both directions; reload applies `.dark` pre-paint (no flash) + meta theme-color; console clean.
+**Choices:** stock-health bar is now a single navy→rose gradient at in-stock% (spec) with the ok/low/out legend rows kept for the breakdown; expense category bars keep per-category tints so the donut legend mapping survives; info-light token `#44598c` chosen (spec left info undefined); no print/PDF view exists to extend.
+**Note:** pre-existing race observed (not introduced here): a theme toggle clicked during post-login preference hydration can be overwritten by the account sync.
+
+## Integration — all three parts (2026-11-16, integration/all-parts)
+Merged A1 → A2 → B onto `main` (a096a2b). Conflicts only in this log (appended entries kept in order); `Sales.jsx` and `PurchaseOrders.jsx` auto-merged with both features present (customer details + gradient charts; eye button + amber draft/ordered). Gates re-run on the merged tree; changed files copied to the Desktop checkout `C:/Users/Training/Desktop/rajdeep/inventory-management-system` as working-tree changes (its git history untouched).

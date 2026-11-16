@@ -12,7 +12,7 @@ export async function getSaleById(id) {
   return data;
 }
 
-// POST /api/sales   body: { items: [{ product, quantity }], discount, customerName, paymentMethod }
+// POST /api/sales   body: { items: [{ product, quantity }], discount, customerName, customer: { name, phone, email, address }, paymentMethod }
 export async function createSale(payload) {
   const { data } = await api.post('/sales', payload);
   return data;
