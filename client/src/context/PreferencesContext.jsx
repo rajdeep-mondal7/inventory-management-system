@@ -32,6 +32,7 @@ export function PreferencesProvider({ children }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', prefs.darkMode);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', prefs.darkMode ? '#11151e' : '#f5efe6');
     localStorage.setItem('preferences', JSON.stringify(prefs));
   }, [prefs]);
 

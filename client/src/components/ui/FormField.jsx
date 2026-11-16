@@ -1,7 +1,7 @@
 import { Children, cloneElement, isValidElement, useId } from 'react';
 
 export const inputClass =
-  'w-full rounded-sm border border-line bg-surface px-3 text-sm text-ink outline-none transition-colors duration-[120ms] placeholder:text-ink-soft/70 focus:border-ink disabled:opacity-50';
+  'w-full rounded-sm border border-field-border bg-surface px-3 text-sm text-ink outline-none transition-colors duration-[120ms] placeholder:text-ink-soft/70 focus:border-accent disabled:opacity-50';
 
 // Binds the label to a single child input via useId; links error text with aria-describedby.
 export default function FormField({ label, error, hint, children }) {

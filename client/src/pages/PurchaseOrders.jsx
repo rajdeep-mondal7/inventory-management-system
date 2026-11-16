@@ -25,7 +25,7 @@ import { formatINR, formatDate } from '../utils/format';
 
 // OWNER: Shilpa (Purchase Orders: list, create order, mark received)
 
-const statusTone = { draft: 'neutral', ordered: 'info', received: 'ok', cancelled: 'out' };
+const statusTone = { draft: 'low', ordered: 'low', received: 'ok', cancelled: 'out' };
 const emptyItem = () => ({ product: '', quantity: 1, unitCost: '' });
 const emptyForm = () => ({ supplier: '', expectedDate: '', notes: '', items: [emptyItem()] });
 const today = () => new Date().toISOString().slice(0, 10);

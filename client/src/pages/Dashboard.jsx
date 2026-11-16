@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, Lock, Package } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -13,6 +13,7 @@ import EmptyState from '../components/ui/EmptyState';
 import CopyButton from '../components/ui/CopyButton';
 import { Skeleton } from '../components/ui/Skeleton';
 import { useAuth } from '../context/AuthContext';
+import useChartTheme from '../hooks/useChartTheme';
 import { getSummary, getSalesByDay } from '../services/reportService';
 import { getSales } from '../services/saleService';
 import { getProducts } from '../services/productService';
@@ -25,6 +26,8 @@ const moveTone = { IN: 'ok', OUT: 'out', ADJUST: 'info' };
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const chart = useChartTheme();
+  const areaGradient = useId();
   const navigate = useNavigate();
   const canSeeReports = user?.role === 'admin' || user?.role === 'manager';
   const [params, setParams] = useSearchParams();
@@ -125,11 +128,17 @@ export default function Dashboard() {
                 ) : (
                   <ResponsiveContainer width="100%" height={220}>
                     <AreaChart data={trendData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                      <CartesianGrid vertical={false} stroke="var(--line)" />
-                      <XAxis dataKey="date" tickFormatter={formatDayMonth} tick={{ fontSize: 11, fill: 'var(--ink-soft)' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: 'var(--ink-soft)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v >= 1000 ? `${v / 1000}k` : v}`} />
-                      <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, fontSize: 12 }} formatter={(v) => formatINR(v)} labelFormatter={formatDayMonth} />
-                      <Area type="monotone" dataKey="sales" stroke="var(--ink)" strokeWidth={2} fill="var(--ink)" fillOpacity={0.08} />
+                      <defs>
+                        <linearGradient id={areaGradient} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={chart.navy} stopOpacity={0.35} />
+                          <stop offset="100%" stopColor={chart.rose} stopOpacity={0.04} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid vertical={false} stroke={chart.grid} />
+                      <XAxis dataKey="date" tickFormatter={formatDayMonth} tick={{ fontSize: 11, fill: chart.tick }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: chart.tick }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v >= 1000 ? `${v / 1000}k` : v}`} />
+                      <Tooltip contentStyle={chart.tooltip} formatter={(v) => formatINR(v)} labelFormatter={formatDayMonth} />
+                      <Area type="monotone" dataKey="sales" stroke={chart.rose} strokeWidth={2} fill={`url(#${areaGradient})`} />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
@@ -142,10 +151,8 @@ export default function Dashboard() {
                 <EmptyState icon={Package} title="No products yet." action={<Button size="sm" onClick={() => navigate('/products?new=1')}>Add product</Button>} />
               ) : (
                 <>
-                  <div className="flex h-2.5 overflow-hidden rounded-full bg-paper">
-                    <div className="bg-ok" style={{ width: `${(inv.inStock / inv.totalProducts) * 100}%` }} />
-                    <div className="bg-low" style={{ width: `${(inv.lowStock / inv.totalProducts) * 100}%` }} />
-                    <div className="bg-out" style={{ width: `${(inv.outOfStock / inv.totalProducts) * 100}%` }} />
+                  <div className="flex h-2.5 overflow-hidden rounded-full bg-paper" role="img" aria-label={`${Math.round((inv.inStock / inv.totalProducts) * 100)}% of products are in stock`}>
+                    <div className="bar-gradient h-full" style={{ width: `${(inv.inStock / inv.totalProducts) * 100}%` }} />
                   </div>
                   <ul className="mt-4 space-y-2 text-[13px]">
                     <HealthRow tone="ok" label="In stock" count={inv.inStock} total={inv.totalProducts} />

@@ -32,7 +32,7 @@ function Spark({ data }) {
     .join(' ');
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" className="shrink-0">
-      <polyline points={points} fill="none" stroke="var(--ink)" strokeWidth="1.5" />
+      <polyline points={points} fill="none" stroke="var(--chart-rose)" strokeWidth="1.5" />
     </svg>
   );
 }

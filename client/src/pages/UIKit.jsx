@@ -62,8 +62,8 @@ export default function UIKit() {
             <Badge tone="ok" dot>In stock</Badge>
             <Badge tone="low" dot>Low: 3</Badge>
             <Badge tone="out" dot>Out</Badge>
-            <Badge tone="info">Ordered</Badge>
-            <Badge tone="neutral">Draft</Badge>
+            <Badge tone="low">Ordered</Badge>
+            <Badge tone="low">Draft</Badge>
           </div>
         </Section>
         <Section title="Stat cards">

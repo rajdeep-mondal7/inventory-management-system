@@ -8,7 +8,7 @@ export default function Modal({ open, title, onClose, children, maxWidth = 'max-
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(20,19,15,0.45)', animation: 'fade 200ms var(--ease) both' }}
+      style={{ backgroundColor: 'var(--scrim)', animation: 'fade 200ms var(--ease) both' }}
       onClick={onClose}
     >
       <div
