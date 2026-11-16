@@ -108,7 +108,7 @@ export default function CommandPalette({ open, onClose }) {
   return (
     <div
       className="fixed inset-0 z-50 flex justify-center px-4"
-      style={{ backgroundColor: 'rgba(20,19,15,0.45)', animation: 'fade 160ms var(--ease) both' }}
+      style={{ backgroundColor: 'var(--scrim)', animation: 'fade 160ms var(--ease) both' }}
       onClick={onClose}
     >
       <div

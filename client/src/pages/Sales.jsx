@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Banknote, ChevronDown, CreditCard, Download, Package, Plus, ShoppingCart, Smartphone, Trash2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -21,6 +21,7 @@ import EmptyState from '../components/ui/EmptyState';
 import CopyButton from '../components/ui/CopyButton';
 import NumberStepper from '../components/ui/NumberStepper';
 import { useAuth } from '../context/AuthContext';
+import useChartTheme from '../hooks/useChartTheme';
 import { getSales, getSaleById, createSale } from '../services/saleService';
 import { getProducts } from '../services/productService';
 import { getTopProducts, getSalesByDay } from '../services/reportService';
@@ -51,6 +52,8 @@ function validateCustomer(name, details) {
 
 export default function Sales() {
   const { user } = useAuth();
+  const chart = useChartTheme();
+  const barGradient = useId();
   const canViewReports = user?.role === 'admin' || user?.role === 'manager';
   const [params, setParams] = useSearchParams();
 
@@ -234,11 +237,17 @@ export default function Sales() {
             {reportsError ? <p className="text-sm text-out">Couldn’t load reports. <button className="underline" onClick={refresh}>Retry</button></p> : trend.every((d) => !d.sales) ? <EmptyState title="No sales in the last 7 days." /> : (
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={trend} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--line)" />
-                  <XAxis dataKey="date" tickFormatter={formatDayMonth} tick={{ fontSize: 11, fill: 'var(--ink-soft)' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: 'var(--ink-soft)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v >= 1000 ? `${v / 1000}k` : v}`} />
-                  <Tooltip cursor={{ fill: 'var(--paper)' }} contentStyle={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, fontSize: 12 }} formatter={(v) => formatINR(v)} labelFormatter={formatDayMonth} />
-                  <Bar dataKey="sales" fill="var(--ink)" radius={[3, 3, 0, 0]} fillOpacity={0.85} />
+                  <defs>
+                    <linearGradient id={barGradient} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={chart.navy} />
+                      <stop offset="100%" stopColor={chart.rose} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} stroke={chart.grid} />
+                  <XAxis dataKey="date" tickFormatter={formatDayMonth} tick={{ fontSize: 11, fill: chart.tick }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: chart.tick }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v >= 1000 ? `${v / 1000}k` : v}`} />
+                  <Tooltip cursor={{ fill: chart.cursor }} contentStyle={chart.tooltip} formatter={(v) => formatINR(v)} labelFormatter={formatDayMonth} />
+                  <Bar dataKey="sales" fill={`url(#${barGradient})`} radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -253,7 +262,7 @@ export default function Sales() {
                       <span className="flex items-center gap-2"><span className="num text-ink-soft">{i + 1}</span><span className="font-medium text-ink">{t.name}</span><span className="mono text-xs text-ink-soft">{t.sku}</span></span>
                       <span className="num text-ink">{formatINR(t.revenue)}</span>
                     </div>
-                    <div className="mt-1 h-1.5 rounded-full bg-paper"><div className="h-full rounded-full bg-ink" style={{ width: `${(t.revenue / maxTop) * 100}%` }} /></div>
+                    <div className="mt-1 h-1.5 rounded-full bg-paper"><div className="bar-gradient h-full rounded-full" style={{ width: `${(t.revenue / maxTop) * 100}%` }} /></div>
                   </div>
                 ))}
               </div>

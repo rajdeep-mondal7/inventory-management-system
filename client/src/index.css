@@ -4,28 +4,41 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------------------------------------------------------------
-   The Counting House — design tokens.
-   Monochrome ink on warm paper; color is reserved for stock/order status.
+   Quiet Luxury Edition — design tokens.
+   Light: Quiet Luxury Alabaster. Dark: Nocturne Luxury.
    Raw values live on :root / .dark; @theme inline maps them to utilities
    (bg-paper, text-ink, border-line, text-ok, bg-low-soft, …).
 ---------------------------------------------------------------- */
 :root {
-  --paper: #f6f4ee;
-  --surface: #fffdf8;
-  --ink: #1c1b18;
-  --ink-soft: #5c584e;
-  --line: #e4e1d8;
-  --on-ink: #f6f4ee;
-  --ok: #2f6b3a;
-  --ok-soft: #e7f0e4;
-  --low: #8a5a12;
-  --low-soft: #f6ecd8;
-  --out: #a33a2a;
-  --out-soft: #f6e4df;
-  --info: #33566b;
-  --info-soft: #e4ecf1;
-  --focus: #1c1b18;
-  --shadow-float: 0 1px 2px rgba(20, 19, 15, 0.06), 0 12px 32px -12px rgba(20, 19, 15, 0.18);
+  --paper: #f5efe6;
+  --surface: #faf7f2;
+  --ink: #1c263b;
+  --ink-soft: #5c544e; /* AA on cream; #857b74 is reserved for large text/decor via --ink-faint */
+  --ink-faint: #857b74;
+  --line: #e3dbd0;
+  --on-ink: #faf7f2;
+  --ok: #1e4d40;
+  --ok-soft: #e4f0ec;
+  --low: #8a5319;
+  --low-soft: #f9efe0;
+  --out: #8c3241;
+  --out-soft: #f9e4e7;
+  --info: #44598c;
+  --info-soft: #e7ecf5;
+  --focus: #945661;
+  --accent: #945661;
+  --accent-hover: #7e4650;
+  --on-accent: #faf7f2;
+  --field-border: #857b74; /* ≥3:1 against the surface for form fields */
+  --sidebar: #1c263b;
+  --sidebar-hover: #2a3550;
+  --sidebar-text: #f5efe6;
+  --sidebar-soft: #b8c0d4;
+  --sidebar-line: #2e3a54;
+  --chart-navy: #1c263b;
+  --chart-rose: #945661;
+  --scrim: rgba(28, 38, 59, 0.45);
+  --shadow-float: 0 1px 2px rgba(28, 38, 59, 0.06), 0 12px 32px -12px rgba(28, 38, 59, 0.18);
 
   --r-sm: 8px;
   --r-md: 10px;
@@ -40,21 +53,34 @@
 }
 
 .dark {
-  --paper: #14130f;
-  --surface: #1d1b16;
-  --ink: #ece9e1;
-  --ink-soft: #a6a196;
-  --line: #2c2921;
-  --on-ink: #14130f;
-  --ok: #8fc79a;
-  --ok-soft: #1b2a1b;
-  --low: #d9b36a;
-  --low-soft: #2a2213;
-  --out: #e0917f;
-  --out-soft: #2c1a15;
-  --info: #9dbbd0;
-  --info-soft: #16222b;
-  --focus: #ece9e1;
+  --paper: #11151e;
+  --surface: #181e2b;
+  --ink: #f5efe6;
+  --ink-soft: #b5aea6;
+  --ink-faint: #8d8680;
+  --line: #293245;
+  --on-ink: #121620;
+  --ok: #9ee0ce;
+  --ok-soft: #1b2e2a;
+  --low: #f5c98e;
+  --low-soft: #36281a;
+  --out: #f2acb8;
+  --out-soft: #3b1e24;
+  --info: #8da3cc;
+  --info-soft: #1c2536;
+  --focus: #c98a95;
+  --accent: #c98a95;
+  --accent-hover: #d69ba5;
+  --on-accent: #121620;
+  --field-border: #66728f; /* ≥3:1 against the dark surface */
+  --sidebar: #0d1118;
+  --sidebar-hover: #1a2130;
+  --sidebar-text: #f5efe6;
+  --sidebar-soft: #b5aea6;
+  --sidebar-line: #21293a;
+  --chart-navy: #8da3cc;
+  --chart-rose: #c98a95;
+  --scrim: rgba(0, 0, 0, 0.6);
   --shadow-float: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 40px -12px rgba(0, 0, 0, 0.6);
   color-scheme: dark;
 }
@@ -64,6 +90,7 @@
   --color-surface: var(--surface);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
   --color-line: var(--line);
   --color-on-ink: var(--on-ink);
   --color-ok: var(--ok);
@@ -75,6 +102,15 @@
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
   --color-focus: var(--focus);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-field-border: var(--field-border);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-soft: var(--sidebar-soft);
+  --color-sidebar-line: var(--sidebar-line);
 
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -148,6 +184,11 @@ body {
 .mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+}
+
+/* Navy → rosewood fill for stock-health and ranking progress bars */
+.bar-gradient {
+  background-image: linear-gradient(90deg, var(--chart-navy), var(--chart-rose));
 }
 
 :focus-visible {

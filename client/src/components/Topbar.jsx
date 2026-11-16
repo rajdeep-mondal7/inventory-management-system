@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Menu, Moon, Search, Sun } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { navItems, settingsItem } from '../config/navigation';
 import { useAuth } from '../context/AuthContext';
 import { usePreferences } from '../context/PreferencesContext';
@@ -43,7 +44,14 @@ export default function Topbar({ onMenu, onOpenPalette }) {
       </button>
 
       <div className="flex items-center gap-1">
-        <IconButton label="Toggle dark mode" onClick={() => setPref('darkMode', !prefs.darkMode)}>
+        <IconButton
+          label="Toggle dark mode"
+          onClick={() => {
+            const next = !prefs.darkMode;
+            setPref('darkMode', next);
+            toast.success(next ? 'Switched to Dark mode' : 'Switched to Light mode');
+          }}
+        >
           {prefs.darkMode ? <Sun size={18} /> : <Moon size={18} />}
         </IconButton>
         <AlertBell />

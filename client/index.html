@@ -5,8 +5,14 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Stock, sales and purchase orders for your shop." />
-    <meta name="theme-color" content="#f6f4ee" />
+    <meta name="theme-color" content="#f5efe6" />
     <title>StockFlow — Inventory</title>
+    <script>
+      // Apply the saved theme before first paint to avoid a flash of the wrong theme.
+      try {
+        if (JSON.parse(localStorage.getItem('preferences')).darkMode) document.documentElement.classList.add('dark');
+      } catch { /* first visit: light */ }
+    </script>
   </head>
   <body>
     <div id="root"></div>

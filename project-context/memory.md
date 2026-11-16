@@ -1,31 +1,31 @@
 # Memory — rolling handoff
 
-Updated: 2026-11-13
+Updated: 2026-11-16
 
 ## State
-- Audit reports fully remediated on `main` (pushed earlier: 6351f26..2306916).
-- UI overhaul "The Counting House" complete on branch `redesign-v3` (NOT pushed). Monochrome ink on warm paper, color only for stock/order status, IBM Plex Sans + Mono self-hosted. No purple/gradients/glass/AI-default fonts.
-- Design system: tokens in `client/src/index.css` (@theme inline, runtime-verified .dark flip); kit in `client/src/components/ui/`; `/ui-kit` DEV route; `project-context/design.md` is the source of truth.
-- All 12 pages rebuilt on the kit: Login, Dashboard, Products, Categories, Suppliers, Inventory, PurchaseOrders, Sales, Expenses, Users, Settings, NotFound. Bespoke page CSS deleted.
-- App shell: grouped sidebar + collapse rail, ⌘K command palette (real product search), UserMenu, breadcrumb, offline banner, skip link, focus-to-main, React 19 ViewTransition.
-- Signatures: RECEIVED stamp on POs, quantity tick (Inventory + dashboard movements). Alert center drawer + kit bell keep the real-time socket.
-- Route-level code splitting: main bundle 348 kB (was 952); recharts lazy.
+- Three feature branches off `main` (a096a2b), each committed, NONE pushed:
+  - `feature/invoice-customer-details` (70dc58e): optional `customer {name,phone,email,address}` on Sale + validators, serializers derive `customerName`, POS collapsible details + inline validation, invoice "Billed to" block, CSV columns, seed ~61% fake customers, +1 server test (17 total on that branch).
+  - `feature/po-view-button` (353b0cc): ghost Eye IconButton first in PO row actions, opens existing drawer, `?order=<id>` deep link, all statuses, 36×36 + aria-label + focus ring.
+  - `feature/quiet-luxury-ui` (current): dual theme Light "Quiet Luxury Alabaster" / Dark "Nocturne Luxury"; tokens in `client/src/index.css`, pre-paint script in `client/index.html`, `hooks/useChartTheme.js` for Recharts gradients/tints, navy sidebar via local CSS-var overrides, rosewood accent, semantic badges (draft/ordered → low). Visual only.
+- `project-context/design.md` rewritten for Quiet Luxury (was The Counting House). Per-part entries in `docs/enhance-ui/EXECUTION-LOG.md` (each on its own branch).
+- Kit/layout/fonts/spacing unchanged from the Counting House overhaul; all 12 pages + shell still kit-based.
 
 ## Verification done
-- `npx eslint .` exit 0; `npx vite build` success; canary grep zero.
-- Browser (admin, seeded Atlas): stock in/out tick; PO create→place→receive + stamp + real-time alert; Categories/Suppliers create+delete; Users role change; Sales multi-line cart + invoice drawer; Products 409→deactivate; dashboard real KPIs + range tabs; ⌘K palette; alert center; dark mode on kit + Users.
-- Test sale INV-2026-0126 and PO-2026-0005 removed, stock reversed. Manual +5 Desk Lamp stock-in drift remains (re-seed to reset).
-- Full report: `docs/enhance-ui/QA-RESULTS.md`; per-phase log: `docs/enhance-ui/EXECUTION-LOG.md`.
+- Local fake-data env: temp mongod replica set on 27018 (dbpath in Temp/stockflow-test-db), `stockflow_test` for tests, `stockflow_demo` seeded for browser; API on 5001, vite on 5174 (5000/5173 occupied by user processes — left alone). No .env read.
+- A1: 17/17 server tests; browser sale with details + walk-in + CSV blob inspection + inline validation.
+- A2: 16/16; browser eye on all 5 statuses, Space activation, deep link, stopPropagation.
+- B: 16/16 server tests; eslint 0; vite build ok; both-themes browser sweep of every page + palette/bell/modals/drawers/Login/Landing/404; toasts both directions; pre-paint dark on reload; console clean.
 
 ## Decisions
-- Direction chosen by user: monochrome ink + status-only color (no brand accent). Anti-AI-slop mandate.
-- Commit identity: Rajdeepkun <mithumondal6647@gmail.com> (per-commit, not local config). Push only when the user asks.
-- Kept shipped behavior: socket alerts, settings sync, 8+char password rule, token invalidation.
+- Commit identity: Rajdeepkun <mithumondal6647@gmail.com> (per-commit `-c`, not local config). Push only when the user asks.
+- B choices: stock-health bar = single navy→rose gradient at in-stock% with ok/low/out legend kept; expense category bars keep per-category hook tints (legend mapping); info-light #44598c (spec undefined); no print view exists.
+- `server/src/services/stockService.js` untouched in all three parts (hard rule).
 
 ## Blockers / gaps
-- Server `npm test` unrun (no TEST_MONGO_URI).
-- Expense delta color cosmetic (rise=green); coarse-pointer/reduced-motion/offline DevTools emulation NOT-RUN; full 390px sweep NOT-RUN.
-- `redesign-v3` not pushed; `main` unchanged by the overhaul.
+- Browser tool `press_key Enter` does not synthesize a native click (CDP artifact); Space verified instead — app keyboard semantics fine.
+- Pre-existing race: theme toggle during post-login preference hydration can be overwritten by account sync (not introduced by B; left as-is).
+- DevTools reduced-motion/offline/coarse-pointer emulation still NOT-RUN; sweep done at ~441px mobile viewport (desktop rail collapse verified earlier on redesign-v3).
+- Temp mongod/API/vite background processes may still be running; test DB is disposable.
 
 ## Next step
-Awaiting user review of `redesign-v3`. Push/merge only on instruction. Possible follow-ups: run server tests, 390px + reduced-motion audit, expense delta color.
+Await user review of the three branches. Push/merge only on instruction. If merging: A1 and A2 touch disjoint files; B touches Sales/PO pages too — merge A1/A2 first, then re-apply B's chart/tone edits on the merged Sales/PO (B branch currently holds main's versions of those pages).
