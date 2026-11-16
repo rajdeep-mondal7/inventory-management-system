@@ -74,3 +74,14 @@ Spec: `docs/superpowers/specs/2026-11-13-stockflow-ui-overhaul-design.md`.
 ## Polish round
 **Files:** ui/StatCard.jsx (goodWhenDown), Dashboard.jsx (expense delta), ui/Card.jsx (min-w-0), ui/IconButton.jsx + index.css (coarse-pointer 40px targets), QA-RESULTS.md.
 **Checks:** eslint exit 0; vite build success; browser: expense delta now red for a rise (#A33A2A); all 10 routes fit a 544px viewport (no page overflow; tables scroll internally); reduced-motion media query confirmed present.
+
+## A2 — Purchase Orders eye (view) button (2026-11-16, feature/po-view-button)
+**Files:** `client/src/pages/PurchaseOrders.jsx` only — Eye ghost IconButton first in row actions for every status,
+reuses the existing detail drawer via a shared `openDetails` handler (also used by row click), `stopPropagation`,
+`aria-label="View purchase order PO-…"`, `title="View details"`, `?order=<id>` deep link kept.
+**Checks:** server `npm test` 16/16 pass; `npx eslint .` exit 0; `npx vite build` success.
+Browser: eye present on draft/ordered/received/cancelled rows, 36×36 target, first action, visible focus ring;
+click and Space open the single existing drawer with correct `?order=` URL (no double open); Receive confirm still
+opens above the list; cancelled order shows its drawer; narrow viewport (~513px) layout intact, table scrolls internally.
+**Note:** automation `press_key Enter` delivers keydown/keyup without synthesizing the native click (tool artifact);
+default is not prevented and Space activates, so real-browser Enter works via native button semantics.
