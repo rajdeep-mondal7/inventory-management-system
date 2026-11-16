@@ -105,17 +105,28 @@ if (!RESET && (await Product.countDocuments()) > 0) {
   const daysAgo = (n, hour = 11) => { const d = new Date(); d.setDate(d.getDate() - n); d.setHours(hour, Math.floor(rand() * 60), 0, 0); return d; };
 
   // ~6 months of sales, 0-3 invoices a day. Planned first so opening stock can cover them.
-  const customers = ['Walk-in', 'Walk-in', 'Walk-in', 'Aman Traders', 'City Mart', 'TechMart Pvt. Ltd.', 'Campus Stores', 'Bright Solutions', 'Neha Gupta', 'Rohan Ltd.'];
+  // ~60% of sales carry clearly fake customer details; the rest stay walk-in.
+  const fakeCustomers = [
+    { name: 'Aman Traders', phone: '+91 90000 10001', email: 'aman.traders@example.com', address: '12 Fake Market Road, Kolkata' },
+    { name: 'City Mart', phone: '+91 90000 10002', email: 'city.mart@example.com', address: '45 Demo Bazaar Street, Howrah' },
+    { name: 'TechMart Pvt. Ltd.', phone: '+91 90000 10003', email: 'techmart@example.com', address: '7 Sample Tech Park, Salt Lake, Kolkata' },
+    { name: 'Campus Stores', phone: '+91 90000 10004', email: 'campus.stores@example.com', address: '3 Test College Lane, Durgapur' },
+    { name: 'Bright Solutions', phone: '+91 90000 10005', email: 'bright.solutions@example.com', address: '88 Placeholder Avenue, Siliguri' },
+    { name: 'Neha Gupta', phone: '+91 90000 10006', email: 'neha.gupta@example.com', address: '21 Mock Residency, Asansol' },
+    { name: 'Rohan Ltd.', phone: '+91 90000 10007', email: 'rohan.ltd@example.com', address: '5 Fictional Industrial Estate, Kharagpur' },
+  ];
   const planned = [];
   for (let day = 180; day >= 0; day--) {
     for (let n = Math.floor(rand() * 4); n > 0; n--) {
       const picked = shuffle(catalogue).slice(0, 1 + Math.floor(rand() * 3));
       const items = picked.map((p) => ({ product: p.sku, name: p.name, quantity: 1 + Math.floor(rand() * 4), unitPrice: p.price }));
       const gross = items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+      const buyer = rand() < 0.6 ? pickOne(fakeCustomers) : null;
       planned.push({
         items,
         discount: rand() < 0.2 ? Math.round(gross * 0.05) : 0,
-        customerName: pickOne(customers),
+        // Walk-ins stay unnamed; the API derives the "Walk-in" label for lists.
+        ...(buyer && { customerName: buyer.name, customer: buyer }),
         paymentMethod: pickOne(['cash', 'upi', 'upi', 'card']),
         soldBy: rand() < 0.5 ? admin._id : staff._id,
         createdAt: daysAgo(day),

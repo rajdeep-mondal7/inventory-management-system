@@ -30,12 +30,16 @@ export const getSale = asyncHandler(async (req, res) => {
 });
 
 // POST /api/sales
-// body: { items: [{ product, quantity }], discount, customerName, paymentMethod: 'cash' | 'card' | 'upi' }
+// body: { items: [{ product, quantity }], discount, customerName, customer: { name, phone, email, address }, paymentMethod: 'cash' | 'card' | 'upi' }
 // Prices come from the product, never from the browser. Saving the sale and taking the stock out happen in ONE
 // transaction, so a sale can never exist without its stock being reduced (and the other way round).
 export const createSale = asyncHandler(async (req, res) => {
-  const { items, customerName, paymentMethod } = req.body;
+  const { items, customerName, customer, paymentMethod } = req.body;
   const discount = req.body.discount || 0;
+
+  // Old clients send only customerName; new ones send customer. Keep both consistent.
+  const name = customer?.name || customerName;
+  const customerDoc = customer ? { ...customer, name } : undefined;
 
   // Same product on two lines is merged into one
   const wanted = new Map();
@@ -58,7 +62,7 @@ export const createSale = asyncHandler(async (req, res) => {
   const invoiceNumber = await nextNumber('INV');
 
   const sale = await runInTransaction(async (session) => {
-    const doc = new Sale({ invoiceNumber, items: lines, discount, customerName, paymentMethod, soldBy: req.user._id });
+    const doc = new Sale({ invoiceNumber, items: lines, discount, customerName: name, customer: customerDoc, paymentMethod, soldBy: req.user._id });
     await doc.save({ session }); // totals are calculated by the model
     // Throws "Not enough stock for ..." (and undoes the sale) if any item is short
     await changeStockMany({

@@ -67,10 +67,17 @@ export function serializeOrder(order) {
 // Sale: needs  .populate('soldBy', 'name')      withItems = true for the detail view
 export function serializeSale(sale, withItems = false) {
   const s = sale.toJSON();
+  const customer = {
+    name: s.customer?.name || s.customerName || '',
+    phone: s.customer?.phone || '',
+    email: s.customer?.email || '',
+    address: s.customer?.address || '',
+  };
   const out = {
     id: s.id,
     invoiceNumber: s.invoiceNumber,
-    customerName: s.customerName || 'Walk-in',
+    customer,
+    customerName: customer.name || 'Walk-in', // derived, kept for older consumers and search
     paymentMethod: s.paymentMethod,
     discount: s.discount,
     totalAmount: s.totalAmount,
