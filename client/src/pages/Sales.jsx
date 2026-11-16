@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Banknote, CreditCard, Download, Package, Plus, ShoppingCart, Smartphone, Trash2 } from 'lucide-react';
+import { Banknote, ChevronDown, CreditCard, Download, Package, Plus, ShoppingCart, Smartphone, Trash2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import toast from 'react-hot-toast';
 import PageHeader from '../components/ui/PageHeader';
@@ -13,6 +13,8 @@ import Button from '../components/ui/Button';
 import IconButton from '../components/ui/IconButton';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
+import Textarea from '../components/ui/Textarea';
+import FormField from '../components/ui/FormField';
 import SearchInput, { useDebounced } from '../components/ui/SearchInput';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
@@ -27,6 +29,25 @@ import { formatINR, formatDateTime, formatDayMonth } from '../utils/format';
 
 const PAYMENTS = { cash: { label: 'Cash', Icon: Banknote }, upi: { label: 'UPI', Icon: Smartphone }, card: { label: 'Card', Icon: CreditCard } };
 const PAGE_SIZE = 10;
+const emptyDetails = () => ({ phone: '', email: '', address: '' });
+
+// Mirrors the server rules in saleRoutes.js so errors show inline before submitting.
+function validateCustomer(name, details) {
+  const e = {};
+  if (name.trim().length > 100) e.name = 'Customer name must be 100 characters or fewer.';
+  const phone = details.phone.trim();
+  if (phone) {
+    if (!/^[0-9+\-() ]+$/.test(phone)) e.phone = 'Phone can only contain digits, spaces, +, -, ( and ).';
+    else {
+      const digits = phone.replace(/\D/g, '');
+      if (digits.length < 7 || digits.length > 15) e.phone = 'Phone must have 7 to 15 digits.';
+    }
+  }
+  const email = details.email.trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Enter a valid customer email address.';
+  if (details.address.trim().length > 300) e.address = 'Address must be 300 characters or fewer.';
+  return e;
+}
 
 export default function Sales() {
   const { user } = useAuth();
@@ -54,6 +75,9 @@ export default function Sales() {
   const [cart, setCart] = useState([]);
   const [picker, setPicker] = useState('');
   const [customer, setCustomer] = useState('');
+  const [customerDetails, setCustomerDetails] = useState(emptyDetails);
+  const [customerErrors, setCustomerErrors] = useState({});
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [payMethod, setPayMethod] = useState('cash');
   const [discount, setDiscount] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -100,12 +124,14 @@ export default function Sales() {
     return () => { active = false; };
   }, [saleParam]);
 
+  const resetCustomer = () => { setCustomer(''); setCustomerDetails(emptyDetails()); setCustomerErrors({}); setDetailsOpen(false); };
+
   // ?new=1 opens the cart
   const newParam = params.get('new');
   const [consumed, setConsumed] = useState(null);
   if (newParam && newParam !== consumed) {
     setConsumed(newParam);
-    setCart([]); setCustomer(''); setPayMethod('cash'); setDiscount(''); setCartError(''); setPicker('');
+    setCart([]); resetCustomer(); setPayMethod('cash'); setDiscount(''); setCartError(''); setPicker('');
     setCartOpen(true);
   }
 
@@ -131,13 +157,24 @@ export default function Sales() {
   const submitSale = async () => {
     if (!cart.length) return setCartError('Add products to start a sale.');
     if (disc > gross) return setCartError('Discount cannot exceed the gross total.');
+    const errors = validateCustomer(customer, customerDetails);
+    setCustomerErrors(errors);
+    if (Object.keys(errors).length) { setDetailsOpen(true); return; }
     setSubmitting(true);
     setCartError('');
     try {
+      const details = {
+        name: customer.trim(),
+        phone: customerDetails.phone.trim(),
+        email: customerDetails.email.trim(),
+        address: customerDetails.address.trim(),
+      };
+      const hasDetails = Object.values(details).some(Boolean);
       const sale = await createSale({
         items: cart.map((i) => ({ product: i.product, quantity: Number(i.quantity) })),
         discount: disc || undefined,
-        customerName: customer.trim() || undefined,
+        customerName: details.name || undefined,
+        customer: hasDetails ? Object.fromEntries(Object.entries(details).filter(([, v]) => v)) : undefined,
         paymentMethod: payMethod,
       });
       toast.success(`Sale recorded — ${sale.invoiceNumber}`);
@@ -153,8 +190,8 @@ export default function Sales() {
   };
 
   const exportCsv = () => {
-    const rows = [['Invoice', 'Customer', 'Units', 'Amount', 'Payment', 'Date', 'Sold by'],
-      ...paged.map((s) => [s.invoiceNumber, s.customerName, s.itemCount, s.totalAmount, PAYMENTS[s.paymentMethod]?.label || s.paymentMethod, formatDateTime(s.createdAt), s.soldBy || ''])];
+    const rows = [['Invoice', 'Customer', 'Phone', 'Email', 'Address', 'Units', 'Amount', 'Payment', 'Date', 'Sold by'],
+      ...paged.map((s) => [s.invoiceNumber, s.customerName, s.customer?.phone || '', s.customer?.email || '', s.customer?.address || '', s.itemCount, s.totalAmount, PAYMENTS[s.paymentMethod]?.label || s.paymentMethod, formatDateTime(s.createdAt), s.soldBy || ''])];
     downloadCsv(`stockflow-sales-${new Date().toISOString().slice(0, 10)}.csv`, rows);
   };
 
@@ -182,7 +219,7 @@ export default function Sales() {
 
   return (
     <>
-      <PageHeader title="Sales" subtitle="Invoices and stock deductions." action={<div className="flex gap-2"><Button variant="secondary" onClick={exportCsv} disabled={!sales.length} title="Exports the invoices currently loaded (max 200)"><Download size={16} /> Export CSV</Button><Button onClick={() => { setCart([]); setCustomer(''); setPayMethod('cash'); setDiscount(''); setCartError(''); setCartOpen(true); }}><Plus size={16} /> New sale</Button></div>} />
+      <PageHeader title="Sales" subtitle="Invoices and stock deductions." action={<div className="flex gap-2"><Button variant="secondary" onClick={exportCsv} disabled={!sales.length} title="Exports the invoices currently loaded (max 200)"><Download size={16} /> Export CSV</Button><Button onClick={() => { setCart([]); resetCustomer(); setPayMethod('cash'); setDiscount(''); setCartError(''); setCartOpen(true); }}><Plus size={16} /> New sale</Button></div>} />
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard label="Total revenue" value={formatINR(kpis.revenue)} footnote="Latest 200 invoices" />
@@ -245,10 +282,16 @@ export default function Sales() {
           <div className="space-y-5">
             <div className="flex items-center gap-2"><Badge tone="neutral">{PAYMENTS[detail.paymentMethod]?.label || detail.paymentMethod}</Badge><CopyButton value={detail.invoiceNumber} /></div>
             <dl className="grid grid-cols-2 gap-3 text-[13px]">
-              <div><dt className="text-xs text-ink-soft">Customer</dt><dd className="text-ink">{detail.customerName}</dd></div>
-              <div><dt className="text-xs text-ink-soft">Sold by</dt><dd className="text-ink">{detail.soldBy || '—'}</dd></div>
               <div><dt className="text-xs text-ink-soft">Date</dt><dd className="text-ink">{formatDateTime(detail.createdAt)}</dd></div>
+              <div><dt className="text-xs text-ink-soft">Sold by</dt><dd className="text-ink">{detail.soldBy || '—'}</dd></div>
             </dl>
+            <div className="rounded-md border border-line bg-paper p-3">
+              <h4 className="mb-1 text-xs font-semibold text-ink-soft">Billed to</h4>
+              <p className="text-sm font-medium text-ink">{detail.customer?.name || 'Walk-in customer'}</p>
+              {detail.customer?.phone && <p className="mt-0.5 text-[13px] text-ink-soft">{detail.customer.phone}</p>}
+              {detail.customer?.email && <p className="mt-0.5 text-[13px] text-ink-soft">{detail.customer.email}</p>}
+              {detail.customer?.address && <p className="mt-0.5 text-[13px] text-ink-soft">{detail.customer.address}</p>}
+            </div>
             <div className="overflow-hidden rounded-md border border-line">
               <table className="min-w-full text-[13px]">
                 <thead><tr className="border-b border-line text-xs text-ink-soft"><th className="px-3 py-2 text-left font-semibold">Product</th><th className="px-3 py-2 text-right font-semibold">Qty</th><th className="px-3 py-2 text-right font-semibold">Price</th><th className="px-3 py-2 text-right font-semibold">Subtotal</th></tr></thead>
@@ -319,7 +362,34 @@ export default function Sales() {
             </div>
           )}
 
-          <Input value={customer} onChange={(e) => setCustomer(e.target.value)} placeholder="Walk-in customer" aria-label="Customer name" />
+          <FormField label="Customer name" error={customerErrors.name}>
+            <Input value={customer} onChange={(e) => { setCustomer(e.target.value); setCustomerErrors((er) => ({ ...er, name: undefined })); }} placeholder="Walk-in customer" maxLength={100} />
+          </FormField>
+          <div className="rounded-sm border border-line">
+            <button
+              type="button"
+              aria-expanded={detailsOpen}
+              aria-controls="customer-details"
+              onClick={() => setDetailsOpen((o) => !o)}
+              className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+            >
+              Customer details (optional)
+              <ChevronDown size={15} className={`transition-transform duration-[120ms] ${detailsOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+            </button>
+            {detailsOpen && (
+              <div id="customer-details" className="space-y-3 border-t border-line p-3">
+                <FormField label="Phone" error={customerErrors.phone}>
+                  <Input type="tel" value={customerDetails.phone} onChange={(e) => { setCustomerDetails((d) => ({ ...d, phone: e.target.value })); setCustomerErrors((er) => ({ ...er, phone: undefined })); }} placeholder="+91 90000 00000" />
+                </FormField>
+                <FormField label="Email" error={customerErrors.email}>
+                  <Input type="email" value={customerDetails.email} onChange={(e) => { setCustomerDetails((d) => ({ ...d, email: e.target.value })); setCustomerErrors((er) => ({ ...er, email: undefined })); }} placeholder="name@example.com" />
+                </FormField>
+                <FormField label="Address" error={customerErrors.address}>
+                  <Textarea rows={2} maxLength={300} value={customerDetails.address} onChange={(e) => { setCustomerDetails((d) => ({ ...d, address: e.target.value })); setCustomerErrors((er) => ({ ...er, address: undefined })); }} placeholder="Street, city, PIN" />
+                </FormField>
+              </div>
+            )}
+          </div>
           <div role="radiogroup" aria-label="Payment method" className="flex gap-2">
             {Object.entries(PAYMENTS).map(([key, { label, Icon }]) => (
               <button key={key} type="button" role="radio" aria-checked={payMethod === key} onClick={() => setPayMethod(key)} className={`flex flex-1 items-center justify-center gap-1.5 rounded-sm border px-3 py-2 text-sm font-medium transition-colors ${payMethod === key ? 'border-ink bg-ink text-on-ink' : 'border-line text-ink-soft hover:border-ink-soft'}`}><Icon size={15} /> {label}</button>

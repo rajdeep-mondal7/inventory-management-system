@@ -74,3 +74,17 @@ Spec: `docs/superpowers/specs/2026-11-13-stockflow-ui-overhaul-design.md`.
 ## Polish round
 **Files:** ui/StatCard.jsx (goodWhenDown), Dashboard.jsx (expense delta), ui/Card.jsx (min-w-0), ui/IconButton.jsx + index.css (coarse-pointer 40px targets), QA-RESULTS.md.
 **Checks:** eslint exit 0; vite build success; browser: expense delta now red for a rise (#A33A2A); all 10 routes fit a 544px viewport (no page overflow; tables scroll internally); reduced-motion media query confirmed present.
+
+## A1 — Invoice customer details (2026-11-16, feature/invoice-customer-details)
+**Files:** `server/src/models/Sale.js` (optional `customer` subdoc: name/phone/email/address),
+`server/src/routes/saleRoutes.js` (express-validator: name ≤100, phone charset + 7–15 digits, email, address ≤300, all optional, trimmed),
+`server/src/controllers/saleController.js` (accepts `customer`, falls back to `customerName`, keeps both consistent),
+`server/src/utils/serializers.js` (`customer` object + derived `customerName` kept for lists/search),
+`server/src/scripts/seed.js` (~60% of sales get clearly fake details, walk-ins left unnamed),
+`server/tests/api.test.js` (new last test: save/list/detail, 400s, trim, legacy, fallback, walk-in),
+`client/src/pages/Sales.jsx` (collapsible "Customer details (optional)" with inline validation mirroring server rules, "Billed to" drawer block with "Walk-in customer" fallback and hidden empty lines, CSV Customer/Phone/Email/Address columns through `csvCell`),
+`client/src/services/saleService.js` (payload comment).
+**Checks:** server `npm test` 17/17 pass (local single-node replica set, throwaway `stockflow_test` DB); `npx eslint .` exit 0; `npx vite build` success.
+Browser (seeded local demo): seeded invoice shows full Billed to block; POS sale with invalid phone/email blocked inline, valid sale INV-2026-0276 saved and shown; walk-in shows "Walk-in customer" only; CSV blob inspected — new columns present, `+` phones formula-neutralised. Seed ratio verified 167/275 (61%).
+**Fix during QA:** seed originally stored literal "Walk-in" name, defeating the drawer fallback; walk-ins now stay unnamed.
+**NOT-RUN:** no print/PDF invoice view exists, so nothing to extend there. `stockService.js` untouched.
