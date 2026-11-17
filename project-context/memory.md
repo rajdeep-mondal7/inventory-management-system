@@ -23,7 +23,7 @@ Updated: 2026-11-17
 - KPI consistency = no sparklines (spec all-or-none); weekly bucketing server-side; 80mm receipt skipped.
 
 ## Blockers / gaps
-- PR creation waits on user completing gh device login (code issued 2026-11-17); if abandoned, give compare link + paste-ready body.
+- gh device-flow code 2A68-3F55 EXPIRED unapproved (2026-11-17); gh still logged out. Fallback delivered: compare link + paste-ready title/body at `C:/Users/Training/Desktop/rajdeep/PR_DESCRIPTION.md`. On user "retry login": new `gh auth login --web` code, then `gh pr create --base main --head fix/nav-dashboard-print-role` (body in that file), do NOT merge.
 - Screenshots verified locally, not committed (PR checklist item left unchecked).
 
 ## Next step
