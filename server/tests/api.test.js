@@ -306,6 +306,25 @@ test('reports: summary, top products, sales by day, expense by category', async 
   assert.equal(wide.categories[0].percentage, 60);
 });
 
+test('reports: sales-by-day weekly grouping keeps totals, Monday starts, rejects bad groupBy', async () => {
+  assert.equal((await call('GET', '/reports/sales-by-day?days=90&groupBy=month', as('admin'))).status, 400);
+  const daily = (await call('GET', '/reports/sales-by-day?days=90', as('admin'))).body;
+  assert.equal(daily.length, 90, 'daily response unchanged');
+  const weeks = (await call('GET', '/reports/sales-by-day?days=90&groupBy=week', as('admin'))).body;
+  assert.ok(weeks.length >= 13 && weeks.length <= 14, '90 days bucket into ~13 weeks');
+  assert.equal(weeks.reduce((s, w) => s + w.sales, 0), daily.reduce((s, d) => s + d.sales, 0), 'weekly totals match daily');
+  assert.equal(weeks.reduce((s, w) => s + w.orders, 0), 7, 'invoice counts survive bucketing');
+  for (const w of weeks) {
+    assert.equal(new Date(`${w.date}T00:00:00Z`).getUTCDay(), 1, 'week starts on Monday');
+    assert.ok(w.weekEnd >= w.date, 'weekEnd covers the bucket');
+    const span = (new Date(`${w.weekEnd}T00:00:00Z`) - new Date(`${w.date}T00:00:00Z`)) / 86400000;
+    assert.ok(span <= 6, 'a week never spans more than 7 days');
+  }
+  const last = weeks[weeks.length - 1];
+  assert.equal(last.sales, 3200, 'all sales are today, in the last bucket');
+  assert.equal(last.orders, 7);
+});
+
 test('alerts: list, unread count, mark one read, mark all read', async () => {
   const unread = (await call('GET', '/alerts/unread-count', as('staff'))).body.count;
   assert.ok(unread >= 3);

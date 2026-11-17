@@ -7,6 +7,14 @@ const inr = new Intl.NumberFormat('en-IN', {
 // Single money formatter for the whole app (keeps paise).
 export const formatINR = (amount) => inr.format(Number(amount ?? 0));
 
+// Whole rupees for KPI cards; invoices and bills keep paise.
+const inrWhole = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+});
+export const formatINRWhole = (amount) => inrWhole.format(Number(amount ?? 0));
+
 // Back-compat alias used by older pages.
 export const formatCurrency = formatINR;
 
