@@ -1,6 +1,6 @@
 import { Sale, Expense, Product } from '../models/index.js';
 import asyncHandler from '../utils/asyncHandler.js';
-import { TZ, getRange, previousRange, eachDay } from '../utils/dateRange.js';
+import { TZ, DAY_MS, getRange, previousRange, eachDay } from '../utils/dateRange.js';
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -115,8 +115,9 @@ export const getTopProducts = asyncHandler(async (req, res) => {
   res.json(rows.map((r) => ({ ...r, revenue: round2(r.revenue) })));
 });
 
-// GET /api/reports/sales-by-day?days=30
-// One row per day (days with no sales come back as 0, so the chart line has no gaps)
+// GET /api/reports/sales-by-day?days=30[&groupBy=week]
+// One row per day (days with no sales come back as 0, so the chart line has no gaps).
+// groupBy=week buckets the same zero-filled days into Monday-start weeks, for long ranges.
 export const getSalesByDay = asyncHandler(async (req, res) => {
   const range = getRange(req.query);
 
@@ -132,13 +133,27 @@ export const getSalesByDay = asyncHandler(async (req, res) => {
   ]);
 
   const byDate = new Map(rows.map((r) => [r._id, r]));
-  res.json(
-    eachDay(range).map((date) => ({
-      date,
-      sales: round2(byDate.get(date)?.sales ?? 0),
-      orders: byDate.get(date)?.orders ?? 0,
-    }))
-  );
+  const daily = eachDay(range).map((date) => ({
+    date,
+    sales: round2(byDate.get(date)?.sales ?? 0),
+    orders: byDate.get(date)?.orders ?? 0,
+  }));
+
+  if (req.query.groupBy !== 'week') return res.json(daily);
+
+  // Calendar-day math in pseudo-UTC: weekday of a YYYY-MM-DD string is timezone-independent.
+  const weeks = new Map();
+  for (const day of daily) {
+    const pseudo = new Date(`${day.date}T00:00:00Z`);
+    const monday = new Date(pseudo.getTime() - ((pseudo.getUTCDay() + 6) % 7) * DAY_MS);
+    const key = monday.toISOString().slice(0, 10);
+    const week = weeks.get(key) || { date: key, weekEnd: key, sales: 0, orders: 0 };
+    week.weekEnd = day.date;
+    week.sales = round2(week.sales + day.sales);
+    week.orders += day.orders;
+    weeks.set(key, week);
+  }
+  res.json([...weeks.values()]);
 });
 
 // GET /api/reports/expense-by-category?days=30

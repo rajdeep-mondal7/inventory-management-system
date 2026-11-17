@@ -18,7 +18,7 @@ import { getSummary, getSalesByDay } from '../services/reportService';
 import { getSales } from '../services/saleService';
 import { getProducts } from '../services/productService';
 import { getMovements } from '../services/stockService';
-import { formatINR, formatDateTime, formatDayMonth, timeAgo, plural } from '../utils/format';
+import { formatINR, formatINRWhole, formatDateTime, formatDayMonth, timeAgo, plural } from '../utils/format';
 import { animateNumber } from '../utils/motion';
 
 const PAYMENT = { cash: 'Cash', upi: 'UPI', card: 'Card' };
@@ -46,7 +46,7 @@ export default function Dashboard() {
     let active = true;
     Promise.allSettled([
       canSeeReports ? getSummary({ days }) : Promise.resolve(null),
-      canSeeReports ? getSalesByDay({ days }) : Promise.resolve(null),
+      canSeeReports ? getSalesByDay({ days, ...(days > 30 ? { groupBy: 'week' } : {}) }) : Promise.resolve(null),
       getSales({ limit: 5 }),
       getProducts(),
       getMovements({ limit: 6 }),
@@ -77,8 +77,8 @@ export default function Dashboard() {
     outOfStock: products.filter((p) => p.stockStatus === 'out').length,
   };
   const attention = products ? products.filter((p) => p.stockStatus !== 'ok').sort((a, b) => (a.stockStatus === 'out' ? -1 : 1) - (b.stockStatus === 'out' ? -1 : 1)) : [];
-  const trendData = trend?.map((d) => ({ date: d.date, sales: d.sales })) ?? [];
-  const delta = (change) => (typeof change === 'number' ? { value: change, direction: change < 0 ? 'down' : 'up' } : undefined);
+  const trendData = trend?.map((d) => ({ date: d.date, sales: d.sales, orders: d.orders, weekEnd: d.weekEnd })) ?? [];
+  const delta = (change) => (typeof change === 'number' ? { value: change, direction: change === 0 ? 'flat' : change < 0 ? 'down' : 'up' } : undefined);
 
   const salesColumns = [
     { key: 'invoiceNumber', label: 'Invoice', render: (s) => <span className="inline-flex items-center gap-1"><span className="mono">{s.invoiceNumber}</span><CopyButton value={s.invoiceNumber} /></span> },
@@ -107,9 +107,9 @@ export default function Dashboard() {
               {canSeeReports ? (
                 summary ? (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <StatCard label="Sales" value={formatINR(summary.sales.total)} delta={delta(summary.sales.change)} spark={trendData.map((d) => d.sales)} footnote="no prior period" />
-                    <StatCard label="Expenses" value={formatINR(summary.expenses.total)} delta={delta(summary.expenses.change)} goodWhenDown footnote="no prior period" />
-                    <StatCard label="Net profit" value={formatINR(summary.netProfit.total)} delta={delta(summary.netProfit.change)} footnote="no prior period" />
+                    <StatCard label="Sales" value={formatINRWhole(summary.sales.total)} delta={delta(summary.sales.change)} footnote="no prior period" />
+                    <StatCard label="Expenses" value={formatINRWhole(summary.expenses.total)} delta={delta(summary.expenses.change)} goodWhenDown footnote="no prior period" />
+                    <StatCard label="Net profit" hint="Sales minus expenses" value={formatINRWhole(summary.netProfit.total)} delta={delta(summary.netProfit.change)} footnote="no prior period" />
                   </div>
                 ) : <Card><PanelError label="Couldn’t load the sales summary." onRetry={retry} /></Card>
               ) : (
@@ -130,14 +130,14 @@ export default function Dashboard() {
                     <AreaChart data={trendData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
                       <defs>
                         <linearGradient id={areaGradient} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={chart.navy} stopOpacity={0.35} />
-                          <stop offset="100%" stopColor={chart.rose} stopOpacity={0.04} />
+                          <stop offset="0%" stopColor={chart.navy} stopOpacity={0.45} />
+                          <stop offset="100%" stopColor={chart.rose} stopOpacity={0.06} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid vertical={false} stroke={chart.grid} />
-                      <XAxis dataKey="date" tickFormatter={formatDayMonth} tick={{ fontSize: 11, fill: chart.tick }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: chart.tick }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v >= 1000 ? `${v / 1000}k` : v}`} />
-                      <Tooltip contentStyle={chart.tooltip} formatter={(v) => formatINR(v)} labelFormatter={formatDayMonth} />
+                      <XAxis dataKey="date" tickFormatter={formatDayMonth} interval="preserveStartEnd" minTickGap={24} tick={{ fontSize: 11, fill: chart.tick }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 'auto']} allowDecimals={false} tick={{ fontSize: 11, fill: chart.tick }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v >= 1000 ? `${Math.round(v / 1000)}k` : v}`} />
+                      <Tooltip content={(props) => <TrendTip {...props} chart={chart} />} />
                       <Area type="monotone" dataKey="sales" stroke={chart.rose} strokeWidth={2} fill={`url(#${areaGradient})`} />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -235,4 +235,19 @@ function HealthRow({ tone, label, count, total }) {
 
 function PanelError({ label, onRetry }) {
   return <div className="flex items-center gap-2 py-6 text-sm text-out"><AlertTriangle size={16} /> {label} <button className="underline" onClick={onRetry}>Retry</button></div>;
+}
+
+function TrendTip({ active, payload, chart }) {
+  if (!active || !payload?.length) return null;
+  const point = payload[0].payload;
+  const range = point.weekEnd && point.weekEnd !== point.date
+    ? `${formatDayMonth(point.date)} – ${formatDayMonth(point.weekEnd)}`
+    : formatDayMonth(point.date);
+  return (
+    <div style={chart.tooltip} className="px-3 py-2">
+      <p className="font-medium">{range}</p>
+      <p className="num">{formatINR(point.sales)}</p>
+      <p className="text-ink-soft">{plural(point.orders ?? 0, 'invoice')}</p>
+    </div>
+  );
 }

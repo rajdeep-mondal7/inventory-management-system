@@ -30,7 +30,15 @@ router.get(
   getTopProducts
 );
 
-router.get('/sales-by-day', dateRules, validate, getSalesByDay);
+router.get(
+  '/sales-by-day',
+  [
+    ...dateRules,
+    query('groupBy').optional().isIn(['week']).withMessage('groupBy must be week'),
+  ],
+  validate,
+  getSalesByDay
+);
 router.get('/expense-by-category', dateRules, validate, getExpenseByCategory);
 
 export default router;

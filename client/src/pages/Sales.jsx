@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Banknote, ChevronDown, CreditCard, Download, Package, Plus, ShoppingCart, Smartphone, Trash2 } from 'lucide-react';
+import { Banknote, ChevronDown, CreditCard, Download, Package, Plus, Printer, ShoppingCart, Smartphone, Trash2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import toast from 'react-hot-toast';
 import PageHeader from '../components/ui/PageHeader';
@@ -20,6 +20,7 @@ import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import CopyButton from '../components/ui/CopyButton';
 import NumberStepper from '../components/ui/NumberStepper';
+import PrintBill from '../components/PrintBill';
 import { useAuth } from '../context/AuthContext';
 import useChartTheme from '../hooks/useChartTheme';
 import { getSales, getSaleById, createSale } from '../services/saleService';
@@ -85,6 +86,21 @@ export default function Sales() {
   const [discount, setDiscount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [cartError, setCartError] = useState('');
+  const [printSale, setPrintSale] = useState(null);
+
+  // Row/success print: list rows may lack line items, so fetch the detail first.
+  const printSaleNow = async (s) => {
+    const full = s.items?.length ? s : await getSaleById(s.id).catch(() => null);
+    if (!full) { toast.error('Couldn’t load the invoice for printing.'); return; }
+    setPrintSale(full);
+    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+  };
+
+  useEffect(() => {
+    const after = () => setPrintSale(null);
+    window.addEventListener('afterprint', after);
+    return () => window.removeEventListener('afterprint', after);
+  }, []);
 
   const setParam = (key, val) => {
     const next = new URLSearchParams(params);
@@ -180,7 +196,12 @@ export default function Sales() {
         customer: hasDetails ? Object.fromEntries(Object.entries(details).filter(([, v]) => v)) : undefined,
         paymentMethod: payMethod,
       });
-      toast.success(`Sale recorded — ${sale.invoiceNumber}`);
+      toast.success((t) => (
+        <span className="flex items-center gap-2">
+          Sale recorded — {sale.invoiceNumber}
+          <button type="button" className="font-medium underline underline-offset-2" onClick={() => { toast.dismiss(t.id); printSaleNow(sale); }}>Print bill</button>
+        </span>
+      ), { duration: 6000 });
       setSubmitting(false);
       setCartOpen(false);
       setParam('new', '');
@@ -218,6 +239,9 @@ export default function Sales() {
     { key: 'paymentMethod', label: 'Payment', render: (s) => <Badge tone="neutral">{PAYMENTS[s.paymentMethod]?.label || s.paymentMethod}</Badge> },
     { key: 'createdAt', label: 'Date', render: (s) => <span className="text-ink-soft">{formatDateTime(s.createdAt)}</span> },
     { key: 'soldBy', label: 'Sold by', render: (s) => s.soldBy || '—' },
+    { key: 'actions', label: '', align: 'right', render: (s) => (
+      <IconButton label={`Print bill ${s.invoiceNumber}`} title="Print bill" onClick={(e) => { e.stopPropagation(); printSaleNow(s); }}><Printer size={16} /></IconButton>
+    ) },
   ];
 
   return (
@@ -286,7 +310,8 @@ export default function Sales() {
       {sales.length >= 200 && <p className="mt-2 text-center text-xs text-ink-soft">Older invoices: narrow the date range.</p>}
 
       {/* Invoice drawer */}
-      <Drawer open={!!saleParam} title={detail?.invoiceNumber || 'Invoice'} onClose={() => setParam('sale', '')}>
+      <Drawer open={!!saleParam} title={detail?.invoiceNumber || 'Invoice'} onClose={() => setParam('sale', '')}
+        footer={detail ? <Button variant="secondary" className="w-full" onClick={() => printSaleNow(detail)}><Printer size={16} /> Print bill</Button> : undefined}>
         {detail && (
           <div className="space-y-5">
             <div className="flex items-center gap-2"><Badge tone="neutral">{PAYMENTS[detail.paymentMethod]?.label || detail.paymentMethod}</Badge><CopyButton value={detail.invoiceNumber} /></div>
@@ -407,6 +432,9 @@ export default function Sales() {
           <Input type="number" min="0" step="0.01" value={discount} onChange={(e) => { setDiscount(e.target.value); setCartError(''); }} placeholder="Discount (₹)" aria-label="Discount" />
         </div>
       </Drawer>
+
+      {/* Ctrl+P while an invoice is open prints this bill; hidden on screen. */}
+      <PrintBill sale={printSale || (saleParam ? detail : null)} />
     </>
   );
 }

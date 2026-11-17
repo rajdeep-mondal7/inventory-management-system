@@ -1,0 +1,135 @@
+/* Print bill: hidden on screen; in print it is the only thing on the page.
+   Always black on white, even in dark mode. */
+.print-root {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  body.printing-bill #root {
+    display: none !important;
+  }
+
+  /* White paper even in dark mode, including when "background graphics" is on. */
+  html:has(body.printing-bill),
+  body.printing-bill {
+    background: #fff !important;
+  }
+
+  body.printing-bill {
+    min-height: 100vh;
+  }
+
+  body.printing-bill .print-root {
+    display: block !important;
+  }
+
+  .print-root,
+  .print-root * {
+    color: #000 !important;
+    background: transparent !important;
+    border-color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .print-root {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .print-root .num {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .bill-head h1 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 2px;
+  }
+
+  .bill-head p {
+    margin: 0;
+  }
+
+  .bill-head {
+    border-bottom: 2px solid #000;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+
+  .bill-meta p,
+  .bill-to p {
+    margin: 0;
+  }
+
+  .bill-meta {
+    margin-bottom: 10px;
+  }
+
+  .bill-to h2 {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 2px;
+  }
+
+  .bill-to {
+    margin-bottom: 12px;
+  }
+
+  .bill-items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+  }
+
+  .bill-items thead {
+    display: table-header-group;
+  }
+
+  .bill-items tr {
+    break-inside: avoid;
+  }
+
+  .bill-items th,
+  .bill-items td {
+    border-bottom: 1px solid #000;
+    padding: 5px 6px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .bill-items th.num,
+  .bill-items td.num {
+    text-align: right;
+  }
+
+  .bill-totals p {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    margin: 0 0 2px;
+  }
+
+  .bill-grand {
+    border-top: 2px solid #000;
+    font-size: 14px;
+    font-weight: 700;
+    padding-top: 4px;
+    margin-top: 4px;
+  }
+
+  .bill-thanks {
+    margin-top: 16px;
+    text-align: center;
+    font-weight: 500;
+  }
+}
