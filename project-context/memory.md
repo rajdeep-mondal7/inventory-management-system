@@ -1,31 +1,30 @@
 # Memory — rolling handoff
 
-Updated: 2026-11-16
+Updated: 2026-11-17
 
 ## State
-- Three feature branches off `main` (a096a2b), each committed, NONE pushed:
-  - `feature/invoice-customer-details` (70dc58e): optional `customer {name,phone,email,address}` on Sale + validators, serializers derive `customerName`, POS collapsible details + inline validation, invoice "Billed to" block, CSV columns, seed ~61% fake customers, +1 server test (17 total on that branch).
-  - `feature/po-view-button` (353b0cc): ghost Eye IconButton first in PO row actions, opens existing drawer, `?order=<id>` deep link, all statuses, 36×36 + aria-label + focus ring.
-  - `feature/quiet-luxury-ui` (current): dual theme Light "Quiet Luxury Alabaster" / Dark "Nocturne Luxury"; tokens in `client/src/index.css`, pre-paint script in `client/index.html`, `hooks/useChartTheme.js` for Recharts gradients/tints, navy sidebar via local CSS-var overrides, rosewood accent, semantic badges (draft/ordered → low). Visual only.
-- `project-context/design.md` rewritten for Quiet Luxury (was The Counting House). Per-part entries in `docs/enhance-ui/EXECUTION-LOG.md` (each on its own branch).
-- Kit/layout/fonts/spacing unchanged from the Counting House overhaul; all 12 pages + shell still kit-based.
+- Working checkout is now the USER'S Desktop repo `C:/Users/Training/Desktop/rajdeep/inventory-management-system` (the Qoder-workspace copy at Documents/Qoder/2026-11-16/fb785038 is stale history).
+- PR #16 (`integration/all-parts`, merge e031e47) was merged into `main` by the user; it carried A1 customer details + A2 PO eye + B Quiet Luxury theme.
+- Desktop repo had the pasted PR#16 content uncommitted; preserved as branch `backup/desktop-paste`, then `main` fast-forwarded to e031e47.
+- Current branch `fix/nav-dashboard-print-role` (pushed): 5 commits — 3322d58 Part 0/1 diagnosis (no code loss; nav complete for all roles), cd292a1 Part 2 dashboard graph (server `groupBy=week`, tooltip/KPI/format fixes), 352488a Part 3 print bill (BUSINESS_PROFILE, PrintBill portal, print.css, 3 button placements), a180d47 Part 4 topbar name+role pill, 73016b8 Part 5 recheck log. PR into main pending (gh device-flow login awaiting user approval; fallback compare link ready).
+- Part 0 verdict: `git restore index.css` on clean tree = no-op, NOT the cause of "missing Sales"; stale browser/dev-server state was. `?action=in` needs `?product=` by design.
+- Report-only known issues: Landing Sign Up → /login; no audit screen; Product.image/rating unused; pre-existing prefs-hydration toggle race.
 
 ## Verification done
-- Local fake-data env: temp mongod replica set on 27018 (dbpath in Temp/stockflow-test-db), `stockflow_test` for tests, `stockflow_demo` seeded for browser; API on 5001, vite on 5174 (5000/5173 occupied by user processes — left alone). No .env read.
-- A1: 17/17 server tests; browser sale with details + walk-in + CSV blob inspection + inline validation.
-- A2: 16/16; browser eye on all 5 statuses, Space activation, deep link, stopPropagation.
-- B: 16/16 server tests; eslint 0; vite build ok; both-themes browser sweep of every page + palette/bell/modals/drawers/Login/Landing/404; toasts both directions; pre-paint dark on reload; console clean.
+- Server 18/18 (replica-set mongod 27018, throwaway stockflow_test); eslint 0; vite build ok.
+- Headless Chrome CDP sweeps: all pages × admin/manager/staff, 0 console errors/exceptions/4xx; guards redirect; deep links open overlays; topbar at 1280/390px per role; print-media PDFs+PNGs black-on-white both themes.
+- Browser flows: sale INV-2026-0276 with customer (stock 60→59, toast Print button), threshold sale → bell 8→9, CSV columns, PO-2026-0006 draft→place→receive (stock 5→9, eye drawer).
+- Demo env: mongod 27018 (Temp/stockflow-test-db), API 5001, vite 5174 from Desktop folder; demo users recreated once (old seed passwords 401) then business data re-seeded; test sales/PO left as demo activity.
+- Helper scripts in Temp: print-check.mjs, topbar-check.mjs, sweep-check.mjs (CDP port 9333 headless Chrome, profile Temp/print-check-profile).
 
 ## Decisions
-- Commit identity: Rajdeepkun <mithumondal6647@gmail.com> (per-commit `-c`, not local config). Push only when the user asks.
-- B choices: stock-health bar = single navy→rose gradient at in-stock% with ok/low/out legend kept; expense category bars keep per-category hook tints (legend mapping); info-light #44598c (spec undefined); no print view exists.
-- `server/src/services/stockService.js` untouched in all three parts (hard rule).
+- Commit identity Rajdeepkun <mithumondal6647@gmail.com> per-commit; never push main; no reset/clean/revert/restore used.
+- gh installed via winget; credential extraction blocked by policy → device-flow login (user approves) or spec fallback compare link.
+- KPI consistency = no sparklines (spec all-or-none); weekly bucketing server-side; 80mm receipt skipped.
 
 ## Blockers / gaps
-- Browser tool `press_key Enter` does not synthesize a native click (CDP artifact); Space verified instead — app keyboard semantics fine.
-- Pre-existing race: theme toggle during post-login preference hydration can be overwritten by account sync (not introduced by B; left as-is).
-- DevTools reduced-motion/offline/coarse-pointer emulation still NOT-RUN; sweep done at ~441px mobile viewport (desktop rail collapse verified earlier on redesign-v3).
-- Temp mongod/API/vite background processes may still be running; test DB is disposable.
+- PR creation waits on user completing gh device login (code issued 2026-11-17); if abandoned, give compare link + paste-ready body.
+- Screenshots verified locally, not committed (PR checklist item left unchecked).
 
 ## Next step
-Await user review of the three branches. Push/merge only on instruction. If merging: A1 and A2 touch disjoint files; B touches Sales/PO pages too — merge A1/A2 first, then re-apply B's chart/tone edits on the merged Sales/PO (B branch currently holds main's versions of those pages).
+After user approves gh login: `gh pr create --base main --head fix/nav-dashboard-print-role` with template body (see PR draft in conversation), do NOT merge. Then await review.
